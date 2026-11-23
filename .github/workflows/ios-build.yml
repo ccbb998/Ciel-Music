@@ -1,0 +1,46 @@
+
+name: Build Ciel Music IPA
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'CielMusic_Project.zip'
+      - '.github/workflows/ios-build.yml'
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unpack Xcode project
+        run: |
+          unzip -o CielMusic_Project.zip -d .
+          test -d CielMusic.xcodeproj
+
+      - name: Build unsigned iOS app
+        run: |
+          xcodebuild \
+            -project CielMusic.xcodeproj \
+            -scheme CielMusic \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/CielMusic.app Payload/
+          /usr/bin/zip -r Ciel-Music-unsigned.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ciel-Music-unsigned-IPA
+          path: Ciel-Music-unsigned.ipa
+          if-no-files-found: error
